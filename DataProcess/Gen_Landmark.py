@@ -26,7 +26,7 @@ class Gen2DLandmarks(object):
         img_path_list.sort()
 
         for img_path in tqdm(img_path_list, desc="Generate facial landmarks"):
-            
+
             img_bgr = cv2.imread(img_path)
             img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
             res = self.fa_func.get_landmarks(img_rgb)
@@ -35,6 +35,10 @@ class Gen2DLandmarks(object):
                 print("Warning: can't predict the landmark info of %s" % img_path)
                 
             # base_name = img_path[img_path.rfind("/") + 1:-4]
+
+            # file_name = os.path.basename(img_path)
+            # save_path = "/home/gvc/datasets/FGNET_cropped/headnerf_data/" + file_name[:-4] + "/" + file_name[:-4] + "_lm2d.txt"
+
             save_path = img_path[:-4] + "_lm2d.txt"
             preds = res[0]
             with open(save_path, "w") as f:

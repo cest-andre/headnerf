@@ -5,6 +5,8 @@ import json
 import numpy as np
 import math
 
+from AgeTools.aging_loss import AgingLoss
+
 
 class RenderUtils(object):
     def __init__(self, view_num, device, opt: BaseOptions) -> None:
@@ -96,6 +98,9 @@ class RenderUtils(object):
         
         
     def render_novel_views(self, net, code_info):
+        age_net = AgingLoss().to(self.device)
+        age_list = []
+
         res_img_list = []
         
         batch_xy = self.ray_xy
@@ -107,8 +112,18 @@ class RenderUtils(object):
             with torch.set_grad_enabled(False):
                 pred_dict = net("test",batch_xy, batch_uv, **code_info,**cam_info)
             coarse_fg_rgb = pred_dict["coarse_dict"]["merge_img"]
+
+            #   Pass to age loss to check for variations.
+            age = age_net(coarse_fg_rgb.to(self.device), torch.tensor([0.0]).to(self.device), calc_loss=False)
+            age_list.append(age)
+
             coarse_fg_rgb = (coarse_fg_rgb[0].detach().cpu().permute(1, 2, 0).numpy()* 255).astype(np.uint8)
             res_img_list.append(coarse_fg_rgb)
+
+        age_list = torch.tensor(age_list)
+        print(age_list)
+        print(torch.mean(age_list))
+        print(torch.std(age_list))
 
         return res_img_list
     

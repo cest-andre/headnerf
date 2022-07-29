@@ -115,6 +115,7 @@ class FittingNL3DMM(object):
         
         optimizer = torch.optim.Adam(params_group, betas=(0.9, 0.999))
         iter_num_1 = 50
+        # iter_num_1 = 100
         for iter_ in range(iter_num_1):
             with torch.set_grad_enabled(True):
                 c2l_Rmats = self.compute_rotation(c2l_eulur)
@@ -169,6 +170,7 @@ class FittingNL3DMM(object):
 
         optimizer = torch.optim.Adam(params_group, betas=(0.9, 0.999))
         iter_num_2 = iter_num_1 + 200
+        # iter_num_2 = iter_num_1 + 400
         for iter_ in range(iter_num_1, iter_num_2):
             lm_w = 25.0
             with torch.set_grad_enabled(True):
@@ -254,8 +256,12 @@ class FittingNL3DMM(object):
                 "c2w_Tvec":cur_c2w_Tvec, 
                 "inv_inmat":inv_inmat, 
             }
+
+            # save_path = os.path.join(self.img_dir, os.pardir)
+            # save_path = os.path.abspath(save_path)
             
-            save_path = join(self.img_dir, str_name + "_nl3dmm.pkl")            
+            # save_path = join(save_path + "/headnerf_data/" + str_name, str_name + "_1x_img_10x_id_l1_loss_nl3dmm.pkl")
+            save_path = join(self.img_dir, str_name + "_1x_img_10x_id_l1_loss_nl3dmm.pkl")
             with open(save_path, "wb") as f:
                 pkl.dump(res, f)
 
@@ -286,9 +292,8 @@ if __name__ == "__main__":
     parser.add_argument("--img_dir", type=str, required=True)
     args = parser.parse_args()
 
-
     tt = FittingNL3DMM(img_size=args.img_size, intermediate_size=args.intermediate_size, 
-                        gpu_id=0, batch_size=args.batch_size, img_dir=args.img_dir)
+                       gpu_id=0, batch_size=args.batch_size, img_dir=args.img_dir)
     tt.main_process()
 
 

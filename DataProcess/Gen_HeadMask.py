@@ -50,6 +50,10 @@ class GenHeadMask(object):
         loop_bar = tqdm(img_path_list)
         loop_bar.set_description("Generate head masks")
         for img_path in loop_bar:
+            # file_name = os.path.basename(img_path)
+            # os.makedirs("/home/gvc/datasets/FGNET_cropped/headnerf_data/" + file_name[:-4])
+            # save_path = "/home/gvc/datasets/FGNET_cropped/headnerf_data/" + file_name[:-4] + "/" + file_name[:-4] + "_mask.png"
+
             save_path = img_path[:-4] + "_mask.png"
             
             bgr_img = cv2.imread(img_path)

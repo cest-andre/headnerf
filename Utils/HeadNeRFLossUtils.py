@@ -3,6 +3,9 @@ import torch
 import torch.nn.functional as F
 import torchvision
 
+from AgeTools.aging_loss import AgingLoss
+from AgeTools.id_loss import IDLoss
+
 # import lpips
 # class VGGPerceptualLoss(torch.nn.Module):
 #     def __init__(self, resize=True):
@@ -62,7 +65,7 @@ class VGGPerceptualLoss(torch.nn.Module):
 
 class HeadNeRFLossUtils(object):
     
-    def __init__(self, bg_type = "white", use_vgg_loss = True, device = None) -> None:
+    def __init__(self, bg_type="white", use_vgg_loss=True, use_age_loss=False, use_id_loss=False, device=None) -> None:
         super().__init__()
         
         if bg_type == "white":
@@ -78,7 +81,19 @@ class HeadNeRFLossUtils(object):
         if self.use_vgg_loss:
             assert device is not None
             self.device = device
-            self.vgg_loss_func = VGGPerceptualLoss(resize = True).to(self.device)
+            self.vgg_loss_func = VGGPerceptualLoss(resize=True).to(self.device)
+
+        self.use_age_loss = use_age_loss
+        if self.use_age_loss:
+            assert device is not None
+            self.device = device
+            self.age_loss_func = AgingLoss().to(self.device)
+
+        self.use_id_loss = use_id_loss
+        if self.use_id_loss:
+            assert device is not None
+            self.device = device
+            self.id_loss_func = IDLoss().to(self.device)
 
 
     @staticmethod
@@ -136,7 +151,7 @@ class HeadNeRFLossUtils(object):
 
         res = {
             "bg_loss": bg_loss,  
-            "head_loss": head_loss,  
+            "head_loss": head_loss,
             "nonhaed_loss": nonhaed_loss,  
         }
 
@@ -147,6 +162,20 @@ class HeadNeRFLossUtils(object):
             temp_res_img = res_img
             vgg_loss = self.vgg_loss_func(temp_res_img, masked_gt_img)
             res["vgg"] = vgg_loss
+
+        if self.use_age_loss:
+            temp_res_img = res_img
+            target_age = torch.tensor([28.0 / 100]).to(self.device)
+            age_loss = self.age_loss_func(temp_res_img, target_age)
+            res["age"] = age_loss
+
+        if self.use_id_loss:
+            masked_gt_img = gt_rgb.clone()
+            masked_gt_img[~head_mask_c3b] = bg_value
+
+            temp_res_img = res_img
+            id_loss = self.id_loss_func(temp_res_img, masked_gt_img)
+            res["id"] = id_loss
 
         return res
     
@@ -171,7 +200,12 @@ class HeadNeRFLossUtils(object):
 
         # code loss
         loss_dict.update(self.calc_code_loss(opt_code_dict))        
-        total_loss += 0.001 * loss_dict["iden_code"] + \
+        # total_loss += 0.001 * loss_dict["iden_code"] + \
+        #               1.0 * loss_dict["expr_code"] + \
+        #               0.001 * loss_dict["appea_code"] + \
+        #               0.01 * loss_dict["bg_code"]
+
+        total_loss += 1.0 * loss_dict["iden_code"] + \
                       1.0 * loss_dict["expr_code"] + \
                       0.001 * loss_dict["appea_code"] + \
                       0.01 * loss_dict["bg_code"]

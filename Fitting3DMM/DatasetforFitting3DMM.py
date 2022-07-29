@@ -114,8 +114,15 @@ class DatasetforFitting3DMM(Dataset):
             img_path = self.img_path_list[t_idx]
             
             base_name = os.path.basename(img_path)[:-4]
-            lm_path = "%s/%s_lm2d.txt" % (self.img_dir, base_name)
-                       
+
+            # lm_path = os.path.join(img_path, os.pardir)
+            # lm_path = os.path.abspath(lm_path)
+            # lm_path = os.path.join(lm_path, os.pardir)
+            # lm_path = os.path.abspath(lm_path)
+            # lm_path = "%s/%s_lm2d.txt" % (lm_path + "/headnerf_data/" + base_name, base_name)
+
+            lm_path = "%s/%s_lm2d.txt" % (img_path, base_name)
+
             img = self.load_images(img_path)
             img = torch.from_numpy(img).unsqueeze(0)
             lm_info = self.load_lm_info(lm_path)

@@ -2,6 +2,9 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 
+from AgeTools.aging_loss import AgingLoss
+from AgeTools.id_loss import IDLoss
+
 
 class FittingNL3DMMLossUtils(object):
     def __init__(self) -> None:
@@ -24,7 +27,12 @@ class FittingNL3DMMLossUtils(object):
         
         lm_weight = lm_weight / (lm_weight.sum(dim=0, keepdim=True))
         self.lm_weight = lm_weight.view(1, 68)
-    
+
+        self.device = torch.device("cuda:0")
+        self.age_loss_func = AgingLoss().to(self.device)
+        self.id_loss_func = IDLoss().to(self.device)
+
+
     def skin_loss(self, vert_colors):
         
         skinmask = self.skinmask.to(vert_colors.device)
@@ -89,17 +97,24 @@ class FittingNL3DMMLossUtils(object):
     
         img_loss = self.photo_loss(rendered_imgs, gt_imgs, mask_c3d)
         lm_loss = self.lm2d_loss(proj_lm2ds, gt_lm2ds)
+
+        # target_age = torch.tensor([75.0 / 100]).to(self.device)
+        # age_loss = self.age_loss_func(torch.transpose(rendered_imgs, 1, 3), target_age)
+
+        id_loss = self.id_loss_func(rendered_imgs[mask_c3d], gt_imgs[mask_c3d])
         
         illu_loss_regu_mean = self.gamma_loss(cur_illus)
         # cam_regu_loss = self.regu_cam_offset_loss(delta_eulur, delta_tvec)
         code_regu_loss = self.regu_code_loss(iden_codes, expr_codes, text_codes)
         skin_loss = self.skin_loss(batch_vcs)
         
-        total_loss = img_loss * 10.0 + \
+        total_loss = img_loss * 1.0 + \
                      lm_loss * lm_w + \
                      illu_loss_regu_mean * 0.01 + \
                      code_regu_loss * 0.001 + \
-                     skin_loss * 0.1
+                     skin_loss * 0.1 + id_loss * 10.0# + age_loss * 8.0
+
+        # total_loss = id_loss * 10.0
         
         loss_dict = {
             "img": img_loss,
